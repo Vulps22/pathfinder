@@ -1,4 +1,10 @@
-/// <reference path="./types/express.d.ts" />
+declare global {
+  namespace Express {
+    interface Request {
+      consumer?: string;
+    }
+  }
+}
 
 export { createServer } from './server';
 export type { ServerOptions } from './server';

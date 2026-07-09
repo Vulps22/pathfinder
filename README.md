@@ -1,4 +1,4 @@
-# @vulps22/dynamic-endpoint-router
+# @vulps22/pathfinder
 
 File-based dynamic Express router with composable middleware. Drop route files into a folder and they're registered automatically — no manual `app.get(...)` wiring.
 
@@ -15,7 +15,7 @@ Add the registry to your `.npmrc`:
 Then install:
 
 ```bash
-npm install @vulps22/dynamic-endpoint-router
+npm install @vulps22/pathfinder
 ```
 
 `express@^5` is a peer dependency and must be installed alongside it.
@@ -23,7 +23,7 @@ npm install @vulps22/dynamic-endpoint-router
 ## Quick start
 
 ```ts
-import { createServer } from '@vulps22/dynamic-endpoint-router';
+import { createServer } from '@vulps22/pathfinder';
 
 await createServer({
   port: 3000,
@@ -53,7 +53,7 @@ Each file under `routesPath` becomes a route. The file path maps to a URL path:
 Each route file exports a `route` object implementing `ApiRoute`. Any combination of HTTP methods can be defined:
 
 ```ts
-import { ApiRoute } from '@vulps22/dynamic-endpoint-router';
+import { ApiRoute } from '@vulps22/pathfinder';
 
 export const route: ApiRoute = {
   get: async (req, res) => {
@@ -73,7 +73,7 @@ export const route: ApiRoute = {
 Attach an ordered list of Express middleware via `middleware` — it runs before the matched handler:
 
 ```ts
-import { ApiRoute } from '@vulps22/dynamic-endpoint-router';
+import { ApiRoute } from '@vulps22/pathfinder';
 
 export const route: ApiRoute = {
   middleware: [
@@ -93,7 +93,7 @@ export const route: ApiRoute = {
 ### Body parsing
 
 ```ts
-import { jsonBody, rawBody } from '@vulps22/dynamic-endpoint-router';
+import { jsonBody, rawBody } from '@vulps22/pathfinder';
 
 export const route: ApiRoute = {
   middleware: [jsonBody()],
@@ -108,7 +108,7 @@ export const route: ApiRoute = {
 Validates an `Authorization: Bearer <token>` header against a map of named consumers, optionally blocking specific consumers per environment. On success, sets `req.consumer` to the matched consumer name.
 
 ```ts
-import { auth } from '@vulps22/dynamic-endpoint-router';
+import { auth } from '@vulps22/pathfinder';
 
 export const route: ApiRoute = {
   middleware: [
@@ -129,7 +129,7 @@ export const route: ApiRoute = {
 Verifies a request body signature (e.g. for webhooks) using HMAC-SHA256 with a timing-safe comparison. Requires `rawBody()` to run first so the raw request bytes are available.
 
 ```ts
-import { auth, rawBody } from '@vulps22/dynamic-endpoint-router';
+import { auth, rawBody } from '@vulps22/pathfinder';
 
 export const route: ApiRoute = {
   middleware: [

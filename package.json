@@ -1,9 +1,19 @@
 {
-  "name": "@vulps22/dynamic-endpoint-router",
+  "name": "@vulps22/pathfinder",
   "version": "1.0.1",
-  "description": "File-based dynamic Express router with composable middleware for the Project Encourage ecosystem",
+  "description": "File-based dynamic Express router with composable middleware",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "license": "MIT",
+  "author": "Vulps Development",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vulps22/pathfinder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Vulps22/pathfinder/issues"
+  },
+  "homepage": "https://github.com/Vulps22/pathfinder#readme",
   "files": [
     "dist"
   ],
@@ -14,7 +24,7 @@
     "test:coverage": "jest --coverage"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "engines": {
     "node": ">=20.6.0"

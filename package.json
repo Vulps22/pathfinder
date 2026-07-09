@@ -1,6 +1,6 @@
 {
   "name": "@vulps22/pathfinder",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "File-based dynamic Express router with composable middleware",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

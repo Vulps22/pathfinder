@@ -4,16 +4,6 @@ File-based dynamic Express router with composable middleware. Drop route files i
 
 ## Installation
 
-This package is published to GitHub Packages, not the public npm registry.
-
-Add the registry to your `.npmrc`:
-
-```
-@vulps22:registry=https://npm.pkg.github.com
-```
-
-Then install:
-
 ```bash
 npm install @vulps22/pathfinder
 ```

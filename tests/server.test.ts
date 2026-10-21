@@ -42,6 +42,13 @@ describe('createServer', () => {
     jest.restoreAllMocks();
   });
 
+  it('responds with the status and message of an HttpError thrown by a handler', async () => {
+    server = await createServer({ port: 0, routesPath: FIXTURES });
+    const res = await request(server).get('/api/v1/missing-user');
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'User not found' });
+  });
+
   it('returns a JSON 404 for unmatched routes', async () => {
     server = await createServer({ port: 0, routesPath: FIXTURES });
     const res = await request(server).get('/api/v1/nope');

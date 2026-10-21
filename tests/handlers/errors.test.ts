@@ -1,23 +1,47 @@
 import express from 'express';
 import request from 'supertest';
-import { errorHandler, notFoundHandler, sendError } from '../../src/handlers/errors';
+import {
+  BadRequestError,
+  ForbiddenError,
+  HttpError,
+  InternalServerError,
+  NotAuthorisedError,
+  NotFoundError,
+  errorHandler,
+  notFoundHandler,
+} from '../../src/handlers/errors';
 
 function appThatThrows(err: unknown): express.Express {
   const app = express();
   app.get('/boom', () => { throw err; });
+  app.get('/async-boom', async () => { throw err; });
   app.use(errorHandler);
   return app;
 }
 
-describe('sendError', () => {
-  it('responds with the given status and a JSON error message', async () => {
-    const app = express();
-    app.get('/teapot', (req, res) => sendError(res, 418, 'I am a teapot'));
+describe('HttpError classes', () => {
+  it.each([
+    [BadRequestError, 400, 'Bad Request'],
+    [NotAuthorisedError, 401, 'Unauthorized'],
+    [ForbiddenError, 403, 'Forbidden'],
+    [NotFoundError, 404, 'Not Found'],
+    [InternalServerError, 500, 'Internal Server Error'],
+  ])('%p has status %i and default message "%s"', (ErrorClass, status, message) => {
+    const err = new ErrorClass();
 
-    const res = await request(app).get('/teapot');
+    expect(err).toBeInstanceOf(HttpError);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.status).toBe(status);
+    expect(err.message).toBe(message);
+    expect(err.name).toBe(ErrorClass.name);
+  });
 
-    expect(res.status).toBe(418);
-    expect(res.body).toEqual({ error: 'I am a teapot' });
+  it('accepts a custom message', () => {
+    expect(new NotFoundError('User not found').message).toBe('User not found');
+  });
+
+  it('falls back to "Error" for a status with no standard reason phrase', () => {
+    expect(new HttpError(599).message).toBe('Error');
   });
 });
 
@@ -25,6 +49,7 @@ describe('notFoundHandler', () => {
   it('responds 404 with a JSON body', async () => {
     const app = express();
     app.use(notFoundHandler);
+    app.use(errorHandler);
 
     const res = await request(app).get('/does-not-exist');
 
@@ -43,7 +68,31 @@ describe('errorHandler', () => {
 
   afterEach(() => consoleError.mockRestore());
 
-  it('returns a generic 500 and never exposes the error message or stack', async () => {
+  it('sends the status and message of a thrown HttpError', async () => {
+    const res = await request(appThatThrows(new NotFoundError('User not found'))).get('/boom');
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'User not found' });
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('handles an HttpError thrown from an async handler', async () => {
+    const res = await request(appThatThrows(new ForbiddenError())).get('/async-boom');
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Forbidden' });
+  });
+
+  it('logs a thrown InternalServerError', async () => {
+    const err = new InternalServerError('Payment provider unavailable');
+    const res = await request(appThatThrows(err)).get('/boom');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Payment provider unavailable' });
+    expect(consoleError).toHaveBeenCalledWith('[Server] Server error:', err);
+  });
+
+  it('returns a generic 500 for unexpected errors and never exposes the message or stack', async () => {
     const res = await request(appThatThrows(new Error('db password is hunter2'))).get('/boom');
 
     expect(res.status).toBe(500);
@@ -52,14 +101,14 @@ describe('errorHandler', () => {
     expect(res.text).not.toContain('at ');
   });
 
-  it('logs server errors server-side', async () => {
+  it('logs unexpected errors server-side', async () => {
     const err = new Error('handler failed');
     await request(appThatThrows(err)).get('/boom');
 
     expect(consoleError).toHaveBeenCalledWith('[Server] Unhandled error:', err);
   });
 
-  it('keeps a 4xx status from err.status but uses a generic message', async () => {
+  it('keeps a 4xx status from other middleware but uses a generic message', async () => {
     const err = Object.assign(new Error('Unexpected token b in JSON'), { status: 400 });
     const res = await request(appThatThrows(err)).get('/boom');
 
@@ -83,7 +132,7 @@ describe('errorHandler', () => {
     expect(res.body).toEqual({ error: 'Bad Request' });
   });
 
-  it('treats a 5xx status on the error as a plain 500', async () => {
+  it('treats a 5xx status on a non-HttpError as a plain 500', async () => {
     const err = Object.assign(new Error('upstream detail'), { status: 503 });
     const res = await request(appThatThrows(err)).get('/boom');
 

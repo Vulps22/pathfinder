@@ -11,7 +11,15 @@ export type { ServerOptions } from './server';
 
 export { jsonBody, rawBody } from './middleware/body';
 
-export { sendError } from './handlers/errors';
+export {
+  HttpError,
+  BadRequestError,
+  NotAuthorisedError,
+  ForbiddenError,
+  NotFoundError,
+  InternalServerError,
+  errorHandler,
+} from './handlers/errors';
 
 export * as auth from './middleware/auth';
 

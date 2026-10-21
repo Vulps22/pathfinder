@@ -8,8 +8,14 @@ export interface HmacAuthOptions {
 }
 
 export function hmac(options: HmacAuthOptions): RequestHandler {
+  const { secret, header, parseSignature = (v: string) => v } = options;
+
+  // An empty key makes every signature trivially forgeable, so refuse it at setup time.
+  if (typeof secret !== 'string' || secret.length === 0) {
+    throw new Error('auth.hmac() requires a non-empty secret');
+  }
+
   return (req: Request, res: Response, next: NextFunction): void => {
-    const { secret, header, parseSignature = (v: string) => v } = options;
 
     const headerValue = req.headers[header.toLowerCase()];
 

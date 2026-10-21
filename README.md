@@ -37,17 +37,17 @@ export const route: ApiRoute = {
 
 ## Documentation
 
-- [Getting started](./docs/getting-started.md)
-- [Routing](./docs/routing.md): file paths to URLs, route files, per-route middleware
-- [Middleware](./docs/middleware.md): body parsing
-- [Authentication](./docs/auth.md): bearer tokens, HMAC-signed webhooks, replay protection
-- [Errors](./docs/errors.md): throwing HTTP errors, the built-in error handler
-- [API reference](./docs/api.md)
+- [Getting started](https://github.com/Vulps22/pathfinder/blob/main/docs/getting-started.md)
+- [Routing](https://github.com/Vulps22/pathfinder/blob/main/docs/routing.md): file paths to URLs, route files, per-route middleware
+- [Middleware](https://github.com/Vulps22/pathfinder/blob/main/docs/middleware.md): body parsing
+- [Authentication](https://github.com/Vulps22/pathfinder/blob/main/docs/auth.md): bearer tokens, HMAC-signed webhooks, replay protection
+- [Errors](https://github.com/Vulps22/pathfinder/blob/main/docs/errors.md): throwing HTTP errors, the built-in error handler
+- [API reference](https://github.com/Vulps22/pathfinder/blob/main/docs/api.md)
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/Vulps22/pathfinder/blob/main/CONTRIBUTING.md).
 
 ## Licence
 
-[MIT](./LICENSE)
+[MIT](https://github.com/Vulps22/pathfinder/blob/main/LICENSE)

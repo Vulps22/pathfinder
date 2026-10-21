@@ -136,6 +136,38 @@ export const route: ApiRoute = {
 
 `auth.hmac()` throws when created with an empty or missing `secret`, so a misconfigured environment fails at startup instead of accepting forged signatures.
 
+#### Replay protection
+
+By default a captured signed request can be sent again and will still pass. If the sender includes a timestamp header, turn on `replay` to block that:
+
+```ts
+auth.hmac({
+  secret: process.env.WEBHOOK_SECRET!,
+  header: 'x-signature',
+  replay: {
+    timestampHeader: 'x-timestamp', // Unix time in seconds
+    toleranceSeconds: 300,          // default: 5 minutes either side of now
+  },
+}),
+```
+
+With `replay` on:
+
+- The signature must cover the timestamp as well as the body. By default the signed string is `<timestamp>.<body>` (Stripe's format). Use `signedPayload(timestamp, body)` to match other formats, such as Slack's `v0:<timestamp>:<body>`.
+- Requests with a missing, malformed or out-of-window timestamp get a `401`.
+- Each accepted request is remembered until its timestamp leaves the window, so sending it a second time gets a `401`.
+
+Seen requests are kept in memory by default, which only protects a single process. If you run several instances, pass a shared `store` implementing `add(key, expiresAt)`, which must atomically record the key and return `false` if it was already there:
+
+```ts
+replay: {
+  timestampHeader: 'x-timestamp',
+  store: {
+    add: async (key, expiresAt) => (await redis.set(`hmac:${key}`, '1', { NX: true, PXAT: expiresAt })) === 'OK',
+  },
+},
+```
+
 ## Errors
 
 Every error response is JSON in the form `{ "error": "<message>" }`.
@@ -181,7 +213,8 @@ The built-in auth middleware throws these classes too, so its responses only com
 - `errorHandler: ErrorRequestHandler`
 - `auth.bearer(options: BearerAuthOptions): RequestHandler`
 - `auth.hmac(options: HmacAuthOptions): RequestHandler`
-- Types: `ApiRoute`, `Middleware`, `ServerOptions`, `BearerAuthOptions`, `HmacAuthOptions`
+- `auth.memoryReplayStore(): ReplayStore`
+- Types: `ApiRoute`, `Middleware`, `ServerOptions`, `BearerAuthOptions`, `HmacAuthOptions`, `HmacReplayOptions`, `ReplayStore`
 
 ## Requirements
 

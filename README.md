@@ -136,11 +136,32 @@ export const route: ApiRoute = {
 
 `auth.hmac()` throws when created with an empty or missing `secret`, so a misconfigured environment fails at startup instead of accepting forged signatures.
 
+## Errors
+
+Every error response is JSON in the form `{ "error": "<message>" }`.
+
+- Unmatched routes return `404 { "error": "Not Found" }`.
+- A handler that throws (or calls `next(err)`) returns `500 { "error": "Internal Server Error" }`, and the error is logged server-side with `console.error`.
+- Client errors raised by middleware keep their status with a generic message, e.g. malformed JSON sent to a `jsonBody()` route returns `400 { "error": "Bad Request" }`.
+
+The error's message and stack are never sent to the client. Use `sendError(res, status, message)` to send the same shape from your own handlers:
+
+```js
+import { sendError } from '@vulps22/pathfinder';
+
+get: async (req, res) => {
+  const user = await findUser(req.params.id);
+  if (!user) return sendError(res, 404, 'User not found');
+  res.json(user);
+},
+```
+
 ## Exports
 
 - `createServer(options: ServerOptions): Promise<http.Server>`
 - `jsonBody(): RequestHandler`
 - `rawBody(): RequestHandler`
+- `sendError(res: Response, status: number, message: string): void`
 - `auth.bearer(options: BearerAuthOptions): RequestHandler`
 - `auth.hmac(options: HmacAuthOptions): RequestHandler`
 - Types: `ApiRoute`, `Middleware`, `ServerOptions`, `BearerAuthOptions`, `HmacAuthOptions`

@@ -18,8 +18,12 @@ export async function createServer(options: ServerOptions): Promise<http.Server>
     console.warn(`[Server] Routes path not found: ${routesPath}`);
   }
 
-  return new Promise(resolve => {
-    const server = app.listen(port, () => {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, (err?: Error) => {
+      if (err) {
+        reject(err);
+        return;
+      }
       console.log(`[Server] Listening on port ${port}`);
       resolve(server);
     });

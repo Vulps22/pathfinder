@@ -134,6 +134,8 @@ export const route: ApiRoute = {
 };
 ```
 
+`auth.hmac()` throws when created with an empty or missing `secret`, so a misconfigured environment fails at startup instead of accepting forged signatures.
+
 ## Exports
 
 - `createServer(options: ServerOptions): Promise<http.Server>`

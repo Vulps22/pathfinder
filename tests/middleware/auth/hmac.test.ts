@@ -81,6 +81,20 @@ describe('auth.hmac', () => {
     });
   });
 
+  describe('secret validation', () => {
+    it('throws when secret is an empty string', () => {
+      expect(() => hmac({ secret: '', header: HEADER })).toThrow('non-empty secret');
+    });
+
+    it('throws when secret is missing', () => {
+      expect(() => hmac({ header: HEADER } as unknown as Parameters<typeof hmac>[0])).toThrow('non-empty secret');
+    });
+
+    it('throws when secret is not a string', () => {
+      expect(() => hmac({ secret: 123 as unknown as string, header: HEADER })).toThrow('non-empty secret');
+    });
+  });
+
   describe('body parsing guard', () => {
     it('returns 400 when rawBody() middleware is not used', async () => {
       const app = express();

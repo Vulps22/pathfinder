@@ -59,11 +59,11 @@ export async function loadRoutes(app: Express, routesPath: string): Promise<void
     const route = routeModule.route;
     const middleware = route.middleware ?? [];
 
-    if (route.get)    app.get(urlPath,    ...middleware, (req: Request, res: Response) => void route.get!(req, res));
-    if (route.post)   app.post(urlPath,   ...middleware, (req: Request, res: Response) => void route.post!(req, res));
-    if (route.put)    app.put(urlPath,    ...middleware, (req: Request, res: Response) => void route.put!(req, res));
-    if (route.patch)  app.patch(urlPath,  ...middleware, (req: Request, res: Response) => void route.patch!(req, res));
-    if (route.delete) app.delete(urlPath, ...middleware, (req: Request, res: Response) => void route.delete!(req, res));
+    if (route.get)    app.get(urlPath,    ...middleware, (req: Request, res: Response) => route.get!(req, res));
+    if (route.post)   app.post(urlPath,   ...middleware, (req: Request, res: Response) => route.post!(req, res));
+    if (route.put)    app.put(urlPath,    ...middleware, (req: Request, res: Response) => route.put!(req, res));
+    if (route.patch)  app.patch(urlPath,  ...middleware, (req: Request, res: Response) => route.patch!(req, res));
+    if (route.delete) app.delete(urlPath, ...middleware, (req: Request, res: Response) => route.delete!(req, res));
 
     console.log(`[Router] Registered: ${urlPath}`);
   }

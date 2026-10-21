@@ -24,7 +24,8 @@
     "test:coverage": "jest --coverage"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "engines": {
     "node": ">=20.6.0"

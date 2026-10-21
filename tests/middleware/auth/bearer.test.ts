@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import crypto from 'crypto';
 import { bearer } from '../../../src/middleware/auth/bearer';
 import { errorHandler } from '../../../src/handlers/errors';
 
@@ -58,6 +59,24 @@ describe('auth.bearer', () => {
       expect(res.body.error).toMatch(/Invalid token/);
     });
 
+    it('returns 401 for a token the same length as the secret', async () => {
+      const app = buildApp({ PE: PE_SECRET });
+      const res = await request(app).get('/test').set('Authorization', 'Bearer pe-secret-abd');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 401 for a token that is a prefix of the secret', async () => {
+      const app = buildApp({ PE: PE_SECRET });
+      const res = await request(app).get('/test').set('Authorization', 'Bearer pe-secret');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 401 for a token that extends the secret', async () => {
+      const app = buildApp({ PE: PE_SECRET });
+      const res = await request(app).get('/test').set('Authorization', `Bearer ${PE_SECRET}-extra`);
+      expect(res.status).toBe(401);
+    });
+
     it('skips a consumer whose secret is undefined', async () => {
       const app = buildApp({ PE: undefined });
       const res = await request(app).get('/test').set('Authorization', 'Bearer anything');
@@ -99,6 +118,20 @@ describe('auth.bearer', () => {
       );
       const res = await request(app).get('/test').set('Authorization', 'Bearer postman-secret');
       expect(res.status).toBe(403);
+    });
+  });
+
+  describe('timing safety', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('compares tokens with crypto.timingSafeEqual on equal-length buffers', async () => {
+      const spy = jest.spyOn(crypto, 'timingSafeEqual');
+      const app = buildApp({ PE: PE_SECRET });
+      await request(app).get('/test').set('Authorization', 'Bearer short');
+      expect(spy).toHaveBeenCalled();
+      for (const [a, b] of spy.mock.calls) {
+        expect((a as Buffer).length).toBe((b as Buffer).length);
+      }
     });
   });
 });

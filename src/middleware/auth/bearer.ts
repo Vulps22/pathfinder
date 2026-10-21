@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { ForbiddenError, NotAuthorisedError } from '../../handlers/errors';
 
 export interface BearerAuthOptions {
   consumers: Record<string, string | undefined>;
@@ -7,7 +8,7 @@ export interface BearerAuthOptions {
 }
 
 export function bearer(options: BearerAuthOptions): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     const {
       consumers,
       blockedInEnvironment = {},
@@ -17,8 +18,7 @@ export function bearer(options: BearerAuthOptions): RequestHandler {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Missing or malformed Authorization header' });
-      return;
+      throw new NotAuthorisedError('Missing or malformed Authorization header');
     }
 
     const token = authHeader.slice(7);
@@ -28,8 +28,7 @@ export function bearer(options: BearerAuthOptions): RequestHandler {
 
       const blocked = blockedInEnvironment[environment] ?? [];
       if (blocked.includes(name)) {
-        res.status(403).json({ error: `${name} is not permitted in ${environment}` });
-        return;
+        throw new ForbiddenError(`${name} is not permitted in ${environment}`);
       }
 
       req.consumer = name;
@@ -37,6 +36,6 @@ export function bearer(options: BearerAuthOptions): RequestHandler {
       return;
     }
 
-    res.status(401).json({ error: 'Invalid token' });
+    throw new NotAuthorisedError('Invalid token');
   };
 }

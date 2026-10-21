@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { createHmac, timingSafeEqual } from 'crypto';
+import { BadRequestError, NotAuthorisedError } from '../../handlers/errors';
 
 export interface HmacAuthOptions {
   secret: string;
@@ -15,18 +16,16 @@ export function hmac(options: HmacAuthOptions): RequestHandler {
     throw new Error('auth.hmac() requires a non-empty secret');
   }
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
 
     const headerValue = req.headers[header.toLowerCase()];
 
     if (!headerValue || typeof headerValue !== 'string') {
-      res.status(401).json({ error: `Missing ${header} header` });
-      return;
+      throw new NotAuthorisedError(`Missing ${header} header`);
     }
 
     if (!Buffer.isBuffer(req.body)) {
-      res.status(400).json({ error: 'Raw body required — use rawBody() middleware before auth.hmac()' });
-      return;
+      throw new BadRequestError('Raw body required — use rawBody() middleware before auth.hmac()');
     }
 
     const signature = parseSignature(headerValue);
@@ -42,8 +41,7 @@ export function hmac(options: HmacAuthOptions): RequestHandler {
     }
 
     if (!valid) {
-      res.status(401).json({ error: 'Invalid signature' });
-      return;
+      throw new NotAuthorisedError('Invalid signature');
     }
 
     next();

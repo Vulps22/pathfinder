@@ -136,11 +136,49 @@ export const route: ApiRoute = {
 
 `auth.hmac()` throws when created with an empty or missing `secret`, so a misconfigured environment fails at startup instead of accepting forged signatures.
 
+## Errors
+
+Every error response is JSON in the form `{ "error": "<message>" }`.
+
+To send an error from a handler or middleware, throw one of the error classes. `createServer()` installs a global error handler that turns it into the response:
+
+```js
+import { NotFoundError } from '@vulps22/pathfinder';
+
+get: async (req, res) => {
+  const user = await findUser(req.params.id);
+  if (!user) throw new NotFoundError('User not found'); // 404 { "error": "User not found" }
+  res.json(user);
+},
+```
+
+| Class | Status | Default message |
+| --- | --- | --- |
+| `BadRequestError` | 400 | Bad Request |
+| `NotAuthorisedError` | 401 | Unauthorized |
+| `ForbiddenError` | 403 | Forbidden |
+| `NotFoundError` | 404 | Not Found |
+| `InternalServerError` | 500 | Internal Server Error |
+
+The message is optional, so `throw new ForbiddenError()` works too. For any other status, use `new HttpError(status, message)`, which all of these classes extend.
+
+Everything else is handled for you:
+
+- Unmatched routes return `404 { "error": "Not Found" }`.
+- Any other thrown error (a bug, a database failure) returns `500 { "error": "Internal Server Error" }` and is logged server-side with `console.error`. Its message and stack are never sent to the client.
+- Client errors raised by other middleware keep their status with a generic message, e.g. malformed JSON sent to a `jsonBody()` route returns `400 { "error": "Bad Request" }`.
+
+Throwing works directly inside handlers and middleware, including async ones. Inside a callback that runs later (e.g. `setTimeout`), pass the error to `next(err)` instead.
+
+The built-in auth middleware throws these classes too, so its responses only come back as JSON when the error handler is installed. `createServer()` does that for you. If you mount `auth.bearer()` or `auth.hmac()` on your own Express app, add `app.use(errorHandler)` after your routes.
+
 ## Exports
 
 - `createServer(options: ServerOptions): Promise<http.Server>`
 - `jsonBody(): RequestHandler`
 - `rawBody(): RequestHandler`
+- `HttpError`, `BadRequestError`, `NotAuthorisedError`, `ForbiddenError`, `NotFoundError`, `InternalServerError`
+- `errorHandler: ErrorRequestHandler`
 - `auth.bearer(options: BearerAuthOptions): RequestHandler`
 - `auth.hmac(options: HmacAuthOptions): RequestHandler`
 - Types: `ApiRoute`, `Middleware`, `ServerOptions`, `BearerAuthOptions`, `HmacAuthOptions`

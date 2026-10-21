@@ -1,6 +1,7 @@
 import express from 'express';
 import request from 'supertest';
 import { bearer } from '../../../src/middleware/auth/bearer';
+import { errorHandler } from '../../../src/handlers/errors';
 
 function buildApp(consumers: Record<string, string | undefined>, options: {
   blockedInEnvironment?: Record<string, string[]>;
@@ -11,6 +12,7 @@ function buildApp(consumers: Record<string, string | undefined>, options: {
   app.get('/test', (req, res) => {
     res.status(200).json({ consumer: req.consumer });
   });
+  app.use(errorHandler);
   return app;
 }
 

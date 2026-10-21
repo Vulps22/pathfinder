@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createHmac } from 'crypto';
 import { hmac } from '../../../src/middleware/auth/hmac';
 import { rawBody } from '../../../src/middleware/body';
+import { errorHandler } from '../../../src/handlers/errors';
 
 const SECRET = 'test-secret';
 const HEADER = 'x-signature';
@@ -18,6 +19,7 @@ function buildApp(parseSignature?: (v: string) => string) {
   app.post('/test', (req, res) => {
     res.status(200).json({ ok: true });
   });
+  app.use(errorHandler);
   return app;
 }
 
@@ -101,6 +103,7 @@ describe('auth.hmac', () => {
       app.use(express.json());
       app.use(hmac({ secret: SECRET, header: HEADER }));
       app.post('/test', (req, res) => { res.status(200).json({ ok: true }); });
+      app.use(errorHandler);
 
       const res = await request(app)
         .post('/test')

@@ -1,6 +1,7 @@
 import express from 'express';
 import { existsSync } from 'fs';
 import http from 'http';
+import { errorHandler, notFoundHandler } from './handlers/errors';
 import { loadRoutes } from './loader/routeLoader';
 
 export interface ServerOptions {
@@ -17,6 +18,9 @@ export async function createServer(options: ServerOptions): Promise<http.Server>
   } else {
     console.warn(`[Server] Routes path not found: ${routesPath}`);
   }
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return new Promise((resolve, reject) => {
     const server = app.listen(port, (err?: Error) => {

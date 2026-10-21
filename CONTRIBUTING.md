@@ -18,3 +18,5 @@ Each branch holds one bug fix or one feature, branched from `main`, named `<type
 ## Documentation
 
 User docs live in [`docs/`](./docs/index.md) as plain markdown. Keep one `#` heading per page and link between pages with relative links (`./auth.md`), so the folder can later be built into a site with VitePress.
+
+Every export gets its own entry in [`docs/api.md`](./docs/api.md) with a short description, its signature and a realistic example. Add one when you add an export.

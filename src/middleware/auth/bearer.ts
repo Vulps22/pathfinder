@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { sendError } from '../../handlers/errors';
 
 export interface BearerAuthOptions {
   consumers: Record<string, string | undefined>;
@@ -17,7 +18,7 @@ export function bearer(options: BearerAuthOptions): RequestHandler {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Missing or malformed Authorization header' });
+      sendError(res, 401, 'Missing or malformed Authorization header');
       return;
     }
 
@@ -28,7 +29,7 @@ export function bearer(options: BearerAuthOptions): RequestHandler {
 
       const blocked = blockedInEnvironment[environment] ?? [];
       if (blocked.includes(name)) {
-        res.status(403).json({ error: `${name} is not permitted in ${environment}` });
+        sendError(res, 403, `${name} is not permitted in ${environment}`);
         return;
       }
 
@@ -37,6 +38,6 @@ export function bearer(options: BearerAuthOptions): RequestHandler {
       return;
     }
 
-    res.status(401).json({ error: 'Invalid token' });
+    sendError(res, 401, 'Invalid token');
   };
 }

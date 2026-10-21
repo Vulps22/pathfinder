@@ -29,4 +29,10 @@ describe('createServer', () => {
       createServer({ port: 0, routesPath: '/nonexistent/path' }).then(s => { server = s; })
     ).resolves.not.toThrow();
   });
+
+  it('returns a 500 instead of crashing when a handler throws', async () => {
+    server = await createServer({ port: 0, routesPath: FIXTURES });
+    const res = await request(server).get('/api/v1/error');
+    expect(res.status).toBe(500);
+  });
 });

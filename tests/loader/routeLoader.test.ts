@@ -126,4 +126,18 @@ describe('loadRoutes (integration)', () => {
     expect(res.status).toBe(200);
     expect(res.body.middlewareRan).toBe(true);
   });
+
+  it('passes errors thrown by async handlers to Express error handling', async () => {
+    const app = express();
+    await loadRoutes(app, FIXTURES);
+    const errorHandler = jest.fn((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      res.status(500).json({ error: err.message });
+    });
+    app.use(errorHandler);
+
+    const res = await request(app).get('/api/v1/error');
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'handler failed' });
+    expect(errorHandler).toHaveBeenCalledTimes(1);
+  });
 });

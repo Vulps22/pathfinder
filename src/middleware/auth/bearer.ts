@@ -37,7 +37,7 @@ export function bearer(options: BearerAuthOptions): RequestHandler {
 
       const blocked = blockedInEnvironment[environment] ?? [];
       if (blocked.includes(name)) {
-        throw new ForbiddenError(`${name} is not permitted in ${environment}`);
+        throw new ForbiddenError();
       }
 
       req.consumer = name;

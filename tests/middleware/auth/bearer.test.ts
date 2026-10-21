@@ -85,14 +85,15 @@ describe('auth.bearer', () => {
   });
 
   describe('blockedInEnvironment', () => {
-    it('returns 403 when the consumer is blocked in the current environment', async () => {
+    it('returns a generic 403 when the consumer is blocked in the current environment', async () => {
       const app = buildApp(
         { POSTMAN: 'postman-secret' },
         { blockedInEnvironment: { prod: ['POSTMAN'] }, environment: 'prod' }
       );
       const res = await request(app).get('/test').set('Authorization', 'Bearer postman-secret');
       expect(res.status).toBe(403);
-      expect(res.body.error).toMatch(/POSTMAN/);
+      expect(res.body).toEqual({ error: 'Forbidden' });
+      expect(JSON.stringify(res.body)).not.toMatch(/POSTMAN|prod/);
     });
 
     it('allows the consumer when the environment does not match the block list', async () => {

@@ -8,7 +8,7 @@ on:
 
 env:
   # Minimum global coverage (%) a PR must meet for the coverage check to pass.
-  COVERAGE_TARGET: 90
+  COVERAGE_TARGET: 95
 
 jobs:
   test:

@@ -20,7 +20,7 @@ const server = await createServer({
   routesPath: __dirname + '/routes',
 });
 
-process.on('SIGTERM', () => server.close());
+console.log(server.address());
 ```
 
 See [Getting started](./getting-started.md).
@@ -33,6 +33,7 @@ The options passed to `createServer()`.
 interface ServerOptions {
   port: number;       // port to listen on
   routesPath: string; // folder of compiled .js route files
+  gracefulShutdown?: boolean | GracefulShutdownOptions; // close cleanly on SIGTERM/SIGINT (default false)
 }
 ```
 
@@ -48,6 +49,31 @@ await createServer(options);
 ```
 
 If `routesPath` doesn't exist, the server still starts and logs a warning.
+
+### `GracefulShutdownOptions`
+
+Turns on graceful shutdown when passed as `gracefulShutdown`. Passing `true` uses the defaults.
+
+On the first `SIGTERM` or `SIGINT`, the server stops accepting new connections, closes idle keep-alive connections, and waits for in-flight requests to finish. It then exits with code `0`. If requests are still open after `timeout` milliseconds, the remaining connections are dropped and the process exits with code `1`. A second signal kills the process straight away.
+
+Leave it off if your app has its own shutdown logic, such as closing a database pool before exiting.
+
+```ts
+interface GracefulShutdownOptions {
+  timeout?: number; // ms to wait for in-flight requests before forcing exit (default 10000)
+}
+```
+
+```ts
+import { createServer } from '@vulps22/pathfinder';
+
+// Kubernetes sends SIGTERM and waits 30s before SIGKILL, so finish within 25s.
+await createServer({
+  port: 3000,
+  routesPath: __dirname + '/routes',
+  gracefulShutdown: { timeout: 25_000 },
+});
+```
 
 ## Routes
 

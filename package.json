@@ -9,6 +9,7 @@
     "routing",
     "api",
     "rest-api",
+    "restful",
     "file-based-routing",
     "file-routing",
     "filesystem-routing",

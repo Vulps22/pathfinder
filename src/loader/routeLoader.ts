@@ -1,7 +1,9 @@
 import { Express, Request, Response } from 'express';
 import { readdirSync } from 'fs';
 import { join, relative } from 'path';
-import { ApiRoute } from '../types/ApiRoute';
+import { ApiRoute, RouteInfo, RouteMethod } from '../types/ApiRoute';
+
+const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
 interface RegisteredRoute {
   urlPath: string;
@@ -51,8 +53,14 @@ function collectRoutes(dirPath: string, basePath: string): RegisteredRoute[] {
   return routes;
 }
 
-export async function loadRoutes(app: Express, routesPath: string): Promise<void> {
+interface ResolvedRoute {
+  info: RouteInfo;
+  route: ApiRoute;
+}
+
+async function resolveRoutes(routesPath: string): Promise<ResolvedRoute[]> {
   const sorted = sortRoutes(collectRoutes(routesPath, routesPath));
+  const resolved: ResolvedRoute[] = [];
 
   for (const { urlPath, filePath } of sorted) {
     const routeModule = await import(filePath) as { route?: ApiRoute };
@@ -62,6 +70,25 @@ export async function loadRoutes(app: Express, routesPath: string): Promise<void
       throw new Error(`[Router] Route file ${filePath} must export a \`route\` object (e.g. module.exports = { route })`);
     }
 
+    const methods = METHODS
+      .filter(method => route[method])
+      .map(method => method.toUpperCase() as RouteMethod);
+    const file = relative(routesPath, filePath).replace(/\\/g, '/');
+    resolved.push({ info: { path: urlPath, methods, file }, route });
+  }
+
+  return resolved;
+}
+
+export async function listRoutes(routesPath: string): Promise<RouteInfo[]> {
+  return (await resolveRoutes(routesPath)).map(({ info }) => info);
+}
+
+export async function loadRoutes(app: Express, routesPath: string): Promise<RouteInfo[]> {
+  const resolved = await resolveRoutes(routesPath);
+
+  for (const { info, route } of resolved) {
+    const urlPath = info.path;
     const middleware = route.middleware ?? [];
 
     if (route.get)    app.get(urlPath,    ...middleware, (req: Request, res: Response) => route.get!(req, res));
@@ -72,4 +99,6 @@ export async function loadRoutes(app: Express, routesPath: string): Promise<void
 
     console.log(`[Router] Registered: ${urlPath}`);
   }
+
+  return resolved.map(({ info }) => info);
 }

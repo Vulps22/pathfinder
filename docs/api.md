@@ -137,6 +137,56 @@ export const route: ApiRoute = {
 
 See [Per-route middleware](./routing.md#per-route-middleware).
 
+### `listRoutes()`
+
+Scans `routesPath` the same way `createServer()` does and resolves with one entry per route file, in the order the routes are registered (static segments first). Nothing is registered or served. Handy for asserting in tests that a route exists, printing a route table at startup, or feeding a docs generator.
+
+```ts
+listRoutes(routesPath: string): Promise<RouteInfo[]>
+```
+
+```ts
+import { listRoutes } from '@vulps22/pathfinder';
+
+const routes = await listRoutes(__dirname + '/routes');
+
+for (const { path, methods, file } of routes) {
+  console.log(`${methods.join(', ').padEnd(20)} ${path}  (${file})`);
+}
+// GET, POST            /orders  (orders/index.js)
+// GET                  /orders/export  (orders/export.js)
+// GET, PATCH, DELETE   /orders/:orderId  (orders/[orderId].js)
+```
+
+Route files are imported to read their methods, so any top-level code in them runs, just as it would when the server starts.
+
+### `RouteInfo`
+
+One entry from `listRoutes()`.
+
+```ts
+type RouteMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+interface RouteInfo {
+  path:    string;        // Express path, e.g. /orders/:orderId
+  methods: RouteMethod[]; // methods the route file defines
+  file:    string;        // route file, relative to routesPath
+}
+```
+
+```ts
+import { listRoutes, RouteInfo } from '@vulps22/pathfinder';
+
+it('exposes a refund endpoint', async () => {
+  const routes: RouteInfo[] = await listRoutes(__dirname + '/../dist/routes');
+  const refund = routes.find(r => r.path === '/orders/:orderId/refund');
+
+  expect(refund?.methods).toContain('POST');
+});
+```
+
+`file` always uses forward slashes, on Windows too.
+
 ## Body parsing
 
 ### `jsonBody()`

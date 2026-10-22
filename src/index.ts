@@ -9,6 +9,8 @@ declare global {
 export { createServer } from './server';
 export type { ServerOptions } from './server';
 
+export { listRoutes } from './loader/routeLoader';
+
 export { jsonBody, rawBody } from './middleware/body';
 
 export {
@@ -23,4 +25,4 @@ export {
 
 export * as auth from './middleware/auth';
 
-export type { ApiRoute, Middleware } from './types/ApiRoute';
+export type { ApiRoute, Middleware, RouteInfo, RouteMethod } from './types/ApiRoute';

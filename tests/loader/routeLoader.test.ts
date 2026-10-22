@@ -1,7 +1,7 @@
 import express from 'express';
 import request from 'supertest';
 import { join } from 'path';
-import { toUrlPath, sortRoutes, loadRoutes } from '../../src/loader/routeLoader';
+import { toUrlPath, sortRoutes, loadRoutes, listRoutes } from '../../src/loader/routeLoader';
 
 const FIXTURES = join(__dirname, '../fixtures/routes');
 
@@ -139,5 +139,32 @@ describe('loadRoutes (integration)', () => {
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'handler failed' });
     expect(errorHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('listRoutes', () => {
+  it('lists each route file with its path, methods and source file', async () => {
+    const routes = await listRoutes(FIXTURES);
+    expect(routes).toContainEqual({
+      path: '/api/v1/item/:id',
+      methods: ['GET', 'PATCH', 'DELETE'],
+      file: 'api/v1/item/[id].js',
+    });
+    expect(routes).toContainEqual({
+      path: '/api/v1/item',
+      methods: ['GET', 'POST'],
+      file: 'api/v1/item/index.js',
+    });
+  });
+
+  it('lists routes in registration order', async () => {
+    const paths = (await listRoutes(FIXTURES)).map(r => r.path);
+    expect(paths.indexOf('/api/v1/item/random')).toBeLessThan(paths.indexOf('/api/v1/item/:id'));
+  });
+
+  it('matches what loadRoutes registers', async () => {
+    const app = express();
+    const registered = await loadRoutes(app, FIXTURES);
+    expect(registered).toEqual(await listRoutes(FIXTURES));
   });
 });

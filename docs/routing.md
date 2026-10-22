@@ -62,3 +62,15 @@ export const route: ApiRoute = {
 ```
 
 Any Express `RequestHandler` works here, including your own. See [Middleware](./middleware.md) and [Authentication](./auth.md) for the built-in ones.
+
+## Listing routes
+
+`listRoutes()` returns every route file under a folder with its path, methods and source file, in registration order, without starting a server:
+
+```ts
+import { listRoutes } from '@vulps22/pathfinder';
+
+console.table(await listRoutes(__dirname + '/routes'));
+```
+
+See [`listRoutes()`](./api.md#listroutes) for the full shape.

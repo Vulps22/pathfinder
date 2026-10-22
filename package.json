@@ -7,6 +7,8 @@
     "express5",
     "router",
     "routing",
+    "api",
+    "rest-api",
     "file-based-routing",
     "file-routing",
     "filesystem-routing",

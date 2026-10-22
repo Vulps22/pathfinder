@@ -222,7 +222,7 @@ export const route: ApiRoute = {
 
 ### `auth.hmac()`
 
-Verifies an HMAC-SHA256 signature over the raw request body, in constant time, as used by webhook senders like GitHub and Stripe. Throws at creation if `secret` is empty. Responds `401` for a missing or wrong signature. Needs `rawBody()` first.
+Verifies an HMAC-SHA256 signature over the raw request body, in constant time, as used by webhook senders like GitHub and Stripe. Throws at creation if `secret` is empty. Logs a warning at creation if `replay` isn't set (pass `false` to turn replay protection off without the warning). Responds `401` for a missing or wrong signature. Needs `rawBody()` first.
 
 ```ts
 auth.hmac(options: HmacAuthOptions): RequestHandler
@@ -238,6 +238,7 @@ export const route: ApiRoute = {
       secret: process.env.GITHUB_WEBHOOK_SECRET!,
       header: 'x-hub-signature-256',
       parseSignature: value => value.replace('sha256=', ''),
+      replay: false, // GitHub doesn't send a timestamp
     }),
   ],
   post: async (req, res) => {
@@ -257,7 +258,7 @@ interface HmacAuthOptions {
   secret: string;                             // shared signing secret, non-empty
   header: string;                             // header carrying the signature
   parseSignature?: (value: string) => string; // turns the header value into a hex digest
-  replay?: HmacReplayOptions;                 // turns on replay protection
+  replay?: HmacReplayOptions | false;         // turns on replay protection; false leaves it off, unset warns at startup
 }
 ```
 
@@ -269,6 +270,8 @@ const shopifyWebhook: auth.HmacAuthOptions = {
   header: 'x-shopify-hmac-sha256',
   // Shopify sends base64, so convert it to hex
   parseSignature: value => Buffer.from(value, 'base64').toString('hex'),
+  // Shopify sends no timestamp, so replay protection can't be used
+  replay: false,
 };
 
 export const route: ApiRoute = {

@@ -55,8 +55,13 @@ export async function loadRoutes(app: Express, routesPath: string): Promise<void
   const sorted = sortRoutes(collectRoutes(routesPath, routesPath));
 
   for (const { urlPath, filePath } of sorted) {
-    const routeModule = await import(filePath) as { route: ApiRoute };
+    const routeModule = await import(filePath) as { route?: ApiRoute };
     const route = routeModule.route;
+
+    if (route === null || typeof route !== 'object') {
+      throw new Error(`[Router] Route file ${filePath} must export a \`route\` object (e.g. module.exports = { route })`);
+    }
+
     const middleware = route.middleware ?? [];
 
     if (route.get)    app.get(urlPath,    ...middleware, (req: Request, res: Response) => route.get!(req, res));

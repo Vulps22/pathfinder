@@ -7,7 +7,7 @@ declare global {
 }
 
 export { createServer } from './server';
-export type { ServerOptions } from './server';
+export type { ServerOptions, GracefulShutdownOptions } from './server';
 
 export { listRoutes } from './loader/routeLoader';
 

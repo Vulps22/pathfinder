@@ -81,3 +81,93 @@ describe('createServer', () => {
     await expect(createServer({ port, routesPath: FIXTURES })).rejects.toMatchObject({ code: 'EADDRINUSE' });
   });
 });
+
+describe('createServer gracefulShutdown', () => {
+  const SLOW = join(__dirname, 'fixtures/slow-routes');
+  let server: http.Server;
+  let exit: jest.SpyInstance;
+
+  // Resolves with the exit code once the shutdown handler calls process.exit().
+  const exited = () => new Promise<number | undefined>(resolve => {
+    exit.mockImplementation(((code?: number) => resolve(code)) as never);
+  });
+
+  beforeEach(() => {
+    exit = jest.spyOn(process, 'exit').mockImplementation((() => {}) as never);
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(done => {
+    jest.restoreAllMocks();
+    if (server?.listening) server.close(done);
+    else done();
+  });
+
+  const signalListeners = () => process.listenerCount('SIGTERM') + process.listenerCount('SIGINT');
+
+  it('does not listen for signals unless enabled', async () => {
+    const before = signalListeners();
+    server = await createServer({ port: 0, routesPath: SLOW });
+    expect(signalListeners()).toBe(before);
+  });
+
+  it.each(['SIGTERM', 'SIGINT'] as const)('closes the server and exits 0 on %s', async signal => {
+    server = await createServer({ port: 0, routesPath: SLOW, gracefulShutdown: true });
+    const code = exited();
+    process.emit(signal);
+    expect(await code).toBe(0);
+    expect(server.listening).toBe(false);
+  });
+
+  it('lets in-flight requests finish before exiting', async () => {
+    server = await createServer({ port: 0, routesPath: SLOW, gracefulShutdown: true });
+    const inFlight = request(server).get('/slow?ms=100').then(res => res);
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const code = exited();
+    process.emit('SIGTERM');
+
+    const res = await inFlight;
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ done: true });
+    expect(await code).toBe(0);
+  });
+
+  it('forces exit 1 when requests outlast the timeout', async () => {
+    server = await createServer({ port: 0, routesPath: SLOW, gracefulShutdown: { timeout: 50 } });
+    const inFlight = request(server).get('/slow?ms=500').then(() => null, err => err);
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const code = exited();
+    process.emit('SIGTERM');
+
+    expect(await code).toBe(1);
+    expect(await inFlight).toMatchObject({ code: 'ECONNRESET' });
+  });
+
+  it('only handles the first signal', async () => {
+    server = await createServer({ port: 0, routesPath: SLOW, gracefulShutdown: {} });
+    const before = signalListeners();
+    const code = exited();
+    process.emit('SIGTERM');
+    expect(signalListeners()).toBe(before - 2);
+    expect(await code).toBe(0);
+  });
+
+  it('stops listening for signals when the server is closed directly', async () => {
+    const before = signalListeners();
+    server = await createServer({ port: 0, routesPath: SLOW, gracefulShutdown: true });
+    expect(signalListeners()).toBe(before + 2);
+    await new Promise(resolve => server.close(resolve));
+    expect(signalListeners()).toBe(before);
+  });
+
+  it('exits 1 when the server is already closing', async () => {
+    server = await createServer({ port: 0, routesPath: SLOW, gracefulShutdown: true });
+    const code = exited();
+    server.close();
+    process.emit('SIGTERM');
+    expect(await code).toBe(1);
+  });
+});

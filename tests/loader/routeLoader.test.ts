@@ -4,6 +4,7 @@ import { join } from 'path';
 import { toUrlPath, sortRoutes, loadRoutes, listRoutes } from '../../src/loader/routeLoader';
 
 const FIXTURES = join(__dirname, '../fixtures/routes');
+const INVALID_FIXTURES = join(__dirname, '../fixtures/invalid-routes');
 
 describe('toUrlPath', () => {
   it('converts a simple file path to a URL', () => {
@@ -139,6 +140,20 @@ describe('loadRoutes (integration)', () => {
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'handler failed' });
     expect(errorHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws a clear error naming the file when a route file has no exports', async () => {
+    const app = express();
+    const file = join(INVALID_FIXTURES, 'no-export', 'users.js');
+    await expect(loadRoutes(app, join(INVALID_FIXTURES, 'no-export')))
+      .rejects.toThrow(`Route file ${file} must export a \`route\` object`);
+  });
+
+  it('throws a clear error when a route file exports handlers without the `route` wrapper', async () => {
+    const app = express();
+    const file = join(INVALID_FIXTURES, 'default-export', 'users.js');
+    await expect(loadRoutes(app, join(INVALID_FIXTURES, 'default-export')))
+      .rejects.toThrow(`Route file ${file} must export a \`route\` object`);
   });
 });
 

@@ -20,7 +20,7 @@ const server = await createServer({
   routesPath: __dirname + '/routes',
 });
 
-process.on('SIGTERM', () => server.close());
+console.log(server.address());
 ```
 
 See [Getting started](./getting-started.md).
@@ -33,6 +33,7 @@ The options passed to `createServer()`.
 interface ServerOptions {
   port: number;       // port to listen on
   routesPath: string; // folder of compiled .js route files
+  gracefulShutdown?: boolean | GracefulShutdownOptions; // close cleanly on SIGTERM/SIGINT (default false)
 }
 ```
 
@@ -48,6 +49,31 @@ await createServer(options);
 ```
 
 If `routesPath` doesn't exist, the server still starts and logs a warning.
+
+### `GracefulShutdownOptions`
+
+Turns on graceful shutdown when passed as `gracefulShutdown`. Passing `true` uses the defaults.
+
+On the first `SIGTERM` or `SIGINT`, the server stops accepting new connections, closes idle keep-alive connections, and waits for in-flight requests to finish. It then exits with code `0`. If requests are still open after `timeout` milliseconds, the remaining connections are dropped and the process exits with code `1`. A second signal kills the process straight away.
+
+Leave it off if your app has its own shutdown logic, such as closing a database pool before exiting.
+
+```ts
+interface GracefulShutdownOptions {
+  timeout?: number; // ms to wait for in-flight requests before forcing exit (default 10000)
+}
+```
+
+```ts
+import { createServer } from '@vulps22/pathfinder';
+
+// Kubernetes sends SIGTERM and waits 30s before SIGKILL, so finish within 25s.
+await createServer({
+  port: 3000,
+  routesPath: __dirname + '/routes',
+  gracefulShutdown: { timeout: 25_000 },
+});
+```
 
 ## Routes
 
@@ -272,7 +298,7 @@ export const route: ApiRoute = {
 
 ### `auth.hmac()`
 
-Verifies an HMAC-SHA256 signature over the raw request body, in constant time, as used by webhook senders like GitHub and Stripe. Throws at creation if `secret` is empty. Responds `401` for a missing or wrong signature. Needs `rawBody()` first.
+Verifies an HMAC-SHA256 signature over the raw request body, in constant time, as used by webhook senders like GitHub and Stripe. Throws at creation if `secret` is empty. Logs a warning at creation if `replay` isn't set (pass `false` to turn replay protection off without the warning). Responds `401` for a missing or wrong signature. Needs `rawBody()` first.
 
 ```ts
 auth.hmac(options: HmacAuthOptions): RequestHandler
@@ -288,6 +314,7 @@ export const route: ApiRoute = {
       secret: process.env.GITHUB_WEBHOOK_SECRET!,
       header: 'x-hub-signature-256',
       parseSignature: value => value.replace('sha256=', ''),
+      replay: false, // GitHub doesn't send a timestamp
     }),
   ],
   post: async (req, res) => {
@@ -307,7 +334,7 @@ interface HmacAuthOptions {
   secret: string;                             // shared signing secret, non-empty
   header: string;                             // header carrying the signature
   parseSignature?: (value: string) => string; // turns the header value into a hex digest
-  replay?: HmacReplayOptions;                 // turns on replay protection
+  replay?: HmacReplayOptions | false;         // turns on replay protection; false leaves it off, unset warns at startup
 }
 ```
 
@@ -319,6 +346,8 @@ const shopifyWebhook: auth.HmacAuthOptions = {
   header: 'x-shopify-hmac-sha256',
   // Shopify sends base64, so convert it to hex
   parseSignature: value => Buffer.from(value, 'base64').toString('hex'),
+  // Shopify sends no timestamp, so replay protection can't be used
+  replay: false,
 };
 
 export const route: ApiRoute = {

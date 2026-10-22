@@ -63,8 +63,13 @@ async function resolveRoutes(routesPath: string): Promise<ResolvedRoute[]> {
   const resolved: ResolvedRoute[] = [];
 
   for (const { urlPath, filePath } of sorted) {
-    const routeModule = await import(filePath) as { route: ApiRoute };
+    const routeModule = await import(filePath) as { route?: ApiRoute };
     const route = routeModule.route;
+
+    if (route === null || typeof route !== 'object') {
+      throw new Error(`[Router] Route file ${filePath} must export a \`route\` object (e.g. module.exports = { route })`);
+    }
+
     const methods = METHODS
       .filter(method => route[method])
       .map(method => method.toUpperCase() as RouteMethod);

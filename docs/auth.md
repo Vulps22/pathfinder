@@ -62,6 +62,7 @@ export const route: ApiRoute = {
       secret: process.env.GITHUB_WEBHOOK_SECRET!,
       header: 'x-hub-signature-256',
       parseSignature: value => value.replace('sha256=', ''),
+      replay: false, // GitHub doesn't send a timestamp
     }),
   ],
   post: async (req, res) => {
@@ -80,7 +81,7 @@ export const route: ApiRoute = {
 | `secret` | `string` | The shared signing secret. Required and non-empty. |
 | `header` | `string` | The header carrying the signature. |
 | `parseSignature` | `(value: string) => string` | Optional. Turns the header value into a hex digest, e.g. stripping a `sha256=` prefix. |
-| `replay` | `HmacReplayOptions` | Optional. Turns on [replay protection](#replay-protection). |
+| `replay` | `HmacReplayOptions \| false` | Turns on [replay protection](#replay-protection), or `false` to leave it off. If you leave it out, it stays off and a [warning](#startup-warning) is logged at startup. |
 
 ### Responses
 
@@ -89,6 +90,25 @@ export const route: ApiRoute = {
 | Signature header missing | `401 { "error": "Missing <header> header" }` |
 | `rawBody()` didn't run first | `400` with a message saying so |
 | Signature doesn't match | `401 { "error": "Invalid signature" }` |
+
+### Startup warning
+
+If `replay` isn't set either way, `auth.hmac()` logs this once when it's created:
+
+```
+[pathfinder] auth.hmac() was created without replay protection. Signed requests can be resent and will be accepted again. Set `replay: { timestampHeader: '...' }` to turn it on, or `replay: false` if your sender doesn't support timestamps.
+```
+
+The middleware still works as before; the warning is there so nobody runs without replay protection by accident. Some senders, such as GitHub and Shopify, don't send a timestamp, so replay protection can't be used with them. Set `replay: false` to say so and silence the warning:
+
+```ts
+auth.hmac({
+  secret: process.env.SHOPIFY_WEBHOOK_SECRET!,
+  header: 'x-shopify-hmac-sha256',
+  parseSignature: value => Buffer.from(value, 'base64').toString('hex'),
+  replay: false, // Shopify doesn't send a timestamp
+}),
+```
 
 ### Replay protection
 

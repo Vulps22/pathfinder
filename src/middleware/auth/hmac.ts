@@ -14,20 +14,30 @@ export interface HmacAuthOptions {
   secret: string;
   header: string;
   parseSignature?: (value: string) => string;
-  replay?: HmacReplayOptions;
+  replay?: HmacReplayOptions | false;
 }
 
 const DEFAULT_TOLERANCE_SECONDS = 300;
+
+const REPLAY_UNSET_WARNING =
+  '[pathfinder] auth.hmac() was created without replay protection. Signed requests can be resent and will be accepted again. ' +
+  "Set `replay: { timestampHeader: '...' }` to turn it on, or `replay: false` if your sender doesn't support timestamps.";
 
 const defaultSignedPayload = (timestamp: string, body: Buffer): Buffer =>
   Buffer.concat([Buffer.from(`${timestamp}.`), body]);
 
 export function hmac(options: HmacAuthOptions): RequestHandler {
-  const { secret, header, parseSignature = (v: string) => v, replay } = options;
+  const { secret, header, parseSignature = (v: string) => v } = options;
+  const replay = options.replay || undefined;
 
   // An empty key makes every signature trivially forgeable, so refuse it at setup time.
   if (typeof secret !== 'string' || secret.length === 0) {
     throw new Error('auth.hmac() requires a non-empty secret');
+  }
+
+  // Replay protection can't default on (some senders have no timestamp), so nudge anyone who hasn't chosen either way.
+  if (options.replay === undefined) {
+    console.warn(REPLAY_UNSET_WARNING);
   }
 
   const tolerance = replay?.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS;

@@ -26,6 +26,54 @@ function buildApp(parseSignature?: (v: string) => string) {
 
 describe('auth.hmac', () => {
   const body = JSON.stringify({ event: 'vote' });
+  let warn: jest.SpyInstance;
+
+  beforeEach(() => {
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warn.mockRestore();
+  });
+
+  describe('replay setting warning', () => {
+    it('warns once at creation when replay is not set', async () => {
+      const app = buildApp();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toMatch(/created without replay protection/);
+
+      await request(app).post('/test').set('Content-Type', 'application/json').set(HEADER, sign(body)).send(body);
+      await request(app).post('/test').set('Content-Type', 'application/json').set(HEADER, sign(body)).send(body);
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays silent when replay is false', () => {
+      hmac({ secret: SECRET, header: HEADER, replay: false });
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when replay options are given', () => {
+      hmac({ secret: SECRET, header: HEADER, replay: { timestampHeader: 'x-timestamp' } });
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when creation throws for an empty secret', () => {
+      expect(() => hmac({ secret: '', header: HEADER })).toThrow('non-empty secret');
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('verifies the body alone when replay is false', async () => {
+      const app = express();
+      app.use(rawBody());
+      app.use(hmac({ secret: SECRET, header: HEADER, replay: false }));
+      app.post('/test', (req, res) => { res.status(200).json({ ok: true }); });
+
+      const first = await request(app).post('/test').set('Content-Type', 'application/json').set(HEADER, sign(body)).send(body);
+      const again = await request(app).post('/test').set('Content-Type', 'application/json').set(HEADER, sign(body)).send(body);
+      expect(first.status).toBe(200);
+      expect(again.status).toBe(200);
+    });
+  });
 
   describe('valid signatures', () => {
     it('calls next when signature matches', async () => {

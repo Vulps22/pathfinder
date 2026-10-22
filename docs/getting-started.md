@@ -26,6 +26,20 @@ await createServer({
 
 If `routesPath` doesn't exist, the server still starts and logs a warning, so every request gets a `404`.
 
+## Shut down cleanly
+
+Pass `gracefulShutdown: true` to let in-flight requests finish when the process gets `SIGTERM` or `SIGINT` (for example, Ctrl+C or a container stop):
+
+```ts
+await createServer({
+  port: 3000,
+  routesPath: __dirname + '/routes',
+  gracefulShutdown: true,
+});
+```
+
+See [`GracefulShutdownOptions`](./api.md#gracefulshutdownoptions) for the timeout.
+
 ## Add a route
 
 Create `routes/api/v1/ping.ts`:

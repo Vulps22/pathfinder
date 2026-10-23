@@ -3,7 +3,7 @@ import { readdirSync } from 'fs';
 import { join, relative } from 'path';
 import { ApiRoute, RouteInfo, RouteMethod } from '../types/ApiRoute';
 
-const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
+const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'all'] as const;
 
 interface RegisteredRoute {
   urlPath: string;
@@ -91,11 +91,16 @@ export async function loadRoutes(app: Express, routesPath: string): Promise<Rout
     const urlPath = info.path;
     const middleware = route.middleware ?? [];
 
+    // head goes before get, or Express answers HEAD with the get handler.
+    // all goes last so it only catches methods the file doesn't define.
+    if (route.head)   app.head(urlPath,   ...middleware, (req: Request, res: Response) => route.head!(req, res));
     if (route.get)    app.get(urlPath,    ...middleware, (req: Request, res: Response) => route.get!(req, res));
     if (route.post)   app.post(urlPath,   ...middleware, (req: Request, res: Response) => route.post!(req, res));
     if (route.put)    app.put(urlPath,    ...middleware, (req: Request, res: Response) => route.put!(req, res));
     if (route.patch)  app.patch(urlPath,  ...middleware, (req: Request, res: Response) => route.patch!(req, res));
     if (route.delete) app.delete(urlPath, ...middleware, (req: Request, res: Response) => route.delete!(req, res));
+    if (route.options) app.options(urlPath, ...middleware, (req: Request, res: Response) => route.options!(req, res));
+    if (route.all)    app.all(urlPath,    ...middleware, (req: Request, res: Response) => route.all!(req, res));
 
     console.log(`[Router] Registered: ${urlPath}`);
   }

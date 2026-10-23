@@ -23,7 +23,7 @@ This is deliberate. A more specific file is a separate handler with its own midd
 
 ## Route file shape
 
-Each route file exports a `route` object implementing `ApiRoute`. Define any combination of `get`, `post`, `put`, `patch` and `delete`:
+Each route file exports a `route` object implementing `ApiRoute`. Define any combination of `get`, `post`, `put`, `patch`, `delete`, `head` and `options`:
 
 ```ts
 import { ApiRoute } from '@vulps22/pathfinder';
@@ -41,7 +41,69 @@ export const route: ApiRoute = {
 };
 ```
 
-A request using a method the file doesn't define gets a `404`.
+A request using a method the file doesn't define gets a `404`, unless the file defines `all`.
+
+### `head`
+
+Express already answers `HEAD` with your `get` handler, minus the body. Define `head` when you can answer more cheaply, for example by skipping the database read and only sending headers:
+
+```ts
+// routes/reports/[id].ts  ->  /reports/:id
+import { ApiRoute, NotFoundError } from '@vulps22/pathfinder';
+
+export const route: ApiRoute = {
+  get: async (req, res) => {
+    res.json(await reports.load(req.params.id));
+  },
+  head: async (req, res) => {
+    const size = await reports.size(req.params.id);
+    if (size === null) throw new NotFoundError('Report not found');
+    res.set('Content-Length', String(size)).end();
+  },
+};
+```
+
+### `options`
+
+Handles `OPTIONS` requests, such as a browser's CORS preflight:
+
+```ts
+// routes/orders/index.ts  ->  /orders
+import { ApiRoute } from '@vulps22/pathfinder';
+
+export const route: ApiRoute = {
+  options: async (req, res) => {
+    res.set({
+      'Access-Control-Allow-Origin': 'https://shop.example.com',
+      'Access-Control-Allow-Methods': 'GET, POST',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    }).status(204).end();
+  },
+  get: async (req, res) => {
+    res.set('Access-Control-Allow-Origin', 'https://shop.example.com');
+    res.json(await orders.list());
+  },
+};
+```
+
+### `all`
+
+Catches any method the file doesn't define. Methods the file does define still go to their own handler. Useful for a custom `405` or for proxying:
+
+```ts
+// routes/invoices/[id].ts  ->  /invoices/:id
+import { ApiRoute, HttpError } from '@vulps22/pathfinder';
+
+export const route: ApiRoute = {
+  get: async (req, res) => {
+    res.json(await invoices.find(req.params.id));
+  },
+  all: async (req, res) => {
+    res.set('Allow', 'GET, HEAD');
+    throw new HttpError(405, 'Method Not Allowed');
+  },
+};
+```
 
 ## Per-route middleware
 

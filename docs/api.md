@@ -213,10 +213,10 @@ See [Middleware](./middleware.md#jsonbody).
 
 ### `rawBody()`
 
-Reads an `application/json` request body into `req.body` as an unparsed `Buffer`. `auth.hmac()` needs this, because the signature covers the exact bytes sent.
+Reads the request body into `req.body` as an unparsed `Buffer`, whatever its content type. `auth.hmac()` needs this, because the signature covers the exact bytes sent. Pass `type` to read only some content types.
 
 ```ts
-rawBody(): RequestHandler
+rawBody(options?: RawBodyOptions): RequestHandler
 ```
 
 ```ts
@@ -225,7 +225,7 @@ import { ApiRoute, auth, rawBody } from '@vulps22/pathfinder';
 export const route: ApiRoute = {
   middleware: [
     rawBody(),
-    auth.hmac({ secret: process.env.WEBHOOK_SECRET!, header: 'x-signature' }),
+    auth.hmac({ secret: process.env.WEBHOOK_SECRET!, header: 'x-signature', replay: false }),
   ],
   post: async (req, res) => {
     const event = JSON.parse(req.body.toString('utf8'));
@@ -235,6 +235,41 @@ export const route: ApiRoute = {
 ```
 
 See [Middleware](./middleware.md#rawbody).
+
+### `RawBodyOptions`
+
+The options for `rawBody()`. `type` picks which content types are read. It takes a MIME type, a wildcard such as `text/*`, a list of those, or a function that decides per request. Leave it out to read every content type. Bodies of any other type are left alone, so `req.body` stays `undefined`.
+
+```ts
+interface RawBodyOptions {
+  type?: string | string[] | ((req: IncomingMessage) => boolean); // default: every type
+}
+```
+
+```ts
+import { ApiRoute, auth, rawBody } from '@vulps22/pathfinder';
+import { parse } from 'querystring';
+
+// Slack slash commands arrive as application/x-www-form-urlencoded
+export const route: ApiRoute = {
+  middleware: [
+    rawBody({ type: 'application/x-www-form-urlencoded' }),
+    auth.hmac({
+      secret: process.env.SLACK_SIGNING_SECRET!,
+      header: 'x-slack-signature',
+      parseSignature: value => value.replace('v0=', ''),
+      replay: {
+        timestampHeader: 'x-slack-request-timestamp',
+        signedPayload: (timestamp, body) => `v0:${timestamp}:${body.toString('utf8')}`,
+      },
+    }),
+  ],
+  post: async (req, res) => {
+    const { command, text } = parse(req.body.toString('utf8'));
+    res.json({ text: `You ran ${command} ${text}` });
+  },
+};
+```
 
 ## Authentication
 

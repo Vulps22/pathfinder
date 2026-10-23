@@ -12,6 +12,7 @@ export type { ServerOptions, GracefulShutdownOptions } from './server';
 export { listRoutes } from './loader/routeLoader';
 
 export { jsonBody, rawBody } from './middleware/body';
+export type { RawBodyOptions } from './middleware/body';
 
 export {
   HttpError,

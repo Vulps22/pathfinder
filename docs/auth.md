@@ -50,7 +50,7 @@ The `403` is deliberately generic and doesn't name the consumer or the environme
 
 Verifies an HMAC-SHA256 signature over the request body, the way services like GitHub and Stripe sign webhooks. Signatures are compared in constant time.
 
-`rawBody()` must run first so the exact bytes that were signed are available.
+`rawBody()` must run first so the exact bytes that were signed are available. It reads any content type, so form-encoded webhooks such as Slack's work too.
 
 ```ts
 import { ApiRoute, auth, rawBody } from '@vulps22/pathfinder';
@@ -88,7 +88,7 @@ export const route: ApiRoute = {
 | Situation | Response |
 |---|---|
 | Signature header missing | `401 { "error": "Missing <header> header" }` |
-| `rawBody()` didn't run first | `400` with a message saying so |
+| `rawBody()` didn't run first, or didn't read this content type | `400` with a message saying so |
 | Signature doesn't match | `401 { "error": "Invalid signature" }` |
 
 ### Startup warning

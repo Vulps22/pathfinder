@@ -56,7 +56,7 @@ export function hmac(options: HmacAuthOptions): RequestHandler {
     }
 
     if (!Buffer.isBuffer(req.body)) {
-      throw new BadRequestError('Raw body required — use rawBody() middleware before auth.hmac()');
+      throw new BadRequestError('Raw body required — use rawBody() middleware before auth.hmac(), with a `type` that covers this Content-Type');
     }
 
     let payload: Buffer | string = req.body;

@@ -96,6 +96,16 @@ describe('auth.hmac', () => {
         .send(body);
       expect(res.status).toBe(200);
     });
+    it('verifies form-encoded webhook bodies', async () => {
+      const app = buildApp();
+      const form = 'payload=%7B%22event%22%3A%22vote%22%7D';
+      const res = await request(app)
+        .post('/test')
+        .set('Content-Type', 'application/x-www-form-urlencoded')
+        .set(HEADER, sign(form))
+        .send(form);
+      expect(res.status).toBe(200);
+    });
   });
 
   describe('invalid signatures', () => {

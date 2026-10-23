@@ -23,6 +23,10 @@ const REPLAY_UNSET_WARNING =
   '[pathfinder] auth.hmac() was created without replay protection. Signed requests can be resent and will be accepted again. ' +
   "Set `replay: { timestampHeader: '...' }` to turn it on, or `replay: false` if your sender doesn't support timestamps.";
 
+const NO_RAW_BODY_WARNING =
+  '[pathfinder] auth.hmac() received a request without a raw body and answered 400. ' +
+  "Make sure rawBody() runs before auth.hmac() and that its `type` option covers the request's Content-Type.";
+
 const defaultSignedPayload = (timestamp: string, body: Buffer): Buffer =>
   Buffer.concat([Buffer.from(`${timestamp}.`), body]);
 
@@ -46,6 +50,7 @@ export function hmac(options: HmacAuthOptions): RequestHandler {
   }
   const signedPayload = replay?.signedPayload ?? defaultSignedPayload;
   const store = replay ? (replay.store ?? memoryReplayStore()) : undefined;
+  let warnedNoRawBody = false;
 
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
 
@@ -56,7 +61,12 @@ export function hmac(options: HmacAuthOptions): RequestHandler {
     }
 
     if (!Buffer.isBuffer(req.body)) {
-      throw new BadRequestError('Raw body required — use rawBody() middleware before auth.hmac(), with a `type` that covers this Content-Type');
+      // The hint is for the developer, so it goes to the log, not the client.
+      if (!warnedNoRawBody) {
+        warnedNoRawBody = true;
+        console.warn(NO_RAW_BODY_WARNING);
+      }
+      throw new BadRequestError();
     }
 
     let payload: Buffer | string = req.body;

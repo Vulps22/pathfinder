@@ -170,7 +170,26 @@ describe('auth.hmac', () => {
         .set(HEADER, sign(body))
         .send(body);
       expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/rawBody\(\)/);
+      expect(res.body).toEqual({ error: 'Bad Request' });
+    });
+
+    it('logs the rawBody() hint once per instance instead of sending it to the client', async () => {
+      const app = express();
+      app.use(express.json());
+      app.use(hmac({ secret: SECRET, header: HEADER, replay: false }));
+      app.post('/test', (req, res) => { res.status(200).json({ ok: true }); });
+      app.use(errorHandler);
+
+      for (let i = 0; i < 2; i++) {
+        await request(app)
+          .post('/test')
+          .set('Content-Type', 'application/json')
+          .set(HEADER, sign(body))
+          .send(body);
+      }
+
+      const hints = warn.mock.calls.filter(([msg]) => /rawBody\(\)/.test(msg));
+      expect(hints).toHaveLength(1);
     });
   });
 

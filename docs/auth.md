@@ -88,7 +88,7 @@ export const route: ApiRoute = {
 | Situation | Response |
 |---|---|
 | Signature header missing | `401 { "error": "Missing <header> header" }` |
-| `rawBody()` didn't run first, or didn't read this content type | `400 { "error": "Bad Request" }`, and a warning in the server log the first time |
+| `rawBody()` didn't run first, or didn't read this content type | `500 { "error": "Internal Server Error" }`, with the reason in the server log |
 | Signature doesn't match | `401 { "error": "Invalid signature" }` |
 
 ### Startup warning

@@ -96,6 +96,16 @@ describe('auth.hmac', () => {
         .send(body);
       expect(res.status).toBe(200);
     });
+    it('verifies form-encoded webhook bodies', async () => {
+      const app = buildApp();
+      const form = 'payload=%7B%22event%22%3A%22vote%22%7D';
+      const res = await request(app)
+        .post('/test')
+        .set('Content-Type', 'application/x-www-form-urlencoded')
+        .set(HEADER, sign(form))
+        .send(form);
+      expect(res.status).toBe(200);
+    });
   });
 
   describe('invalid signatures', () => {
@@ -147,7 +157,8 @@ describe('auth.hmac', () => {
   });
 
   describe('body parsing guard', () => {
-    it('returns 400 when rawBody() middleware is not used', async () => {
+    it('logs an error and returns a plain 500 when rawBody() middleware is not used', async () => {
+      const error = jest.spyOn(console, 'error').mockImplementation(() => {});
       const app = express();
       app.use(express.json());
       app.use(hmac({ secret: SECRET, header: HEADER }));
@@ -159,8 +170,10 @@ describe('auth.hmac', () => {
         .set('Content-Type', 'application/json')
         .set(HEADER, sign(body))
         .send(body);
-      expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/rawBody\(\)/);
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal Server Error' });
+      expect(error).toHaveBeenCalledWith(expect.stringMatching(/rawBody\(\)/));
+      error.mockRestore();
     });
   });
 

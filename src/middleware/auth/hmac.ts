@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { BadRequestError, NotAuthorisedError } from '../../handlers/errors';
+import { InternalServerError, NotAuthorisedError } from '../../handlers/errors';
 import { ReplayStore, memoryReplayStore } from './replayStore';
 
 export interface HmacReplayOptions {
@@ -56,7 +56,8 @@ export function hmac(options: HmacAuthOptions): RequestHandler {
     }
 
     if (!Buffer.isBuffer(req.body)) {
-      throw new BadRequestError('Raw body required — use rawBody() middleware before auth.hmac()');
+      console.error('[pathfinder] auth.hmac() needs rawBody() to run first, with a `type` that covers this Content-Type');
+      throw new InternalServerError();
     }
 
     let payload: Buffer | string = req.body;

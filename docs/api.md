@@ -79,7 +79,7 @@ await createServer({
 
 ### `ApiRoute`
 
-The shape of the `route` object every route file exports. Define any of `get`, `post`, `put`, `patch` and `delete`, plus an optional `middleware` list that runs before whichever method matched.
+The shape of the `route` object every route file exports. Define any of `get`, `post`, `put`, `patch`, `delete`, `head` and `options`, plus `all` to catch any method the file doesn't define, and an optional `middleware` list that runs before whichever method matched.
 
 ```ts
 interface ApiRoute {
@@ -89,6 +89,9 @@ interface ApiRoute {
   put?:    (req: Request, res: Response) => Promise<void>;
   patch?:  (req: Request, res: Response) => Promise<void>;
   delete?: (req: Request, res: Response) => Promise<void>;
+  head?:    (req: Request, res: Response) => Promise<void>;
+  options?: (req: Request, res: Response) => Promise<void>;
+  all?:     (req: Request, res: Response) => Promise<void>;
 }
 ```
 
@@ -165,7 +168,7 @@ Route files are imported to read their methods, so any top-level code in them ru
 One entry from `listRoutes()`.
 
 ```ts
-type RouteMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type RouteMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'ALL';
 
 interface RouteInfo {
   path:    string;        // Express path, e.g. /orders/:orderId

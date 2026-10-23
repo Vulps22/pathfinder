@@ -37,7 +37,7 @@ Throwing works directly inside handlers and middleware, including async ones. In
 
 ## What's handled for you
 
-- Unmatched routes, and methods a route file doesn't define, return `404 { "error": "Not Found" }`.
+- Unmatched routes, and methods a route file doesn't define (unless it defines `all`), return `404 { "error": "Not Found" }`.
 - Any other thrown error (a bug, a database failure) returns `500 { "error": "Internal Server Error" }` and is logged server-side with `console.error`. Its message and stack are never sent to the client.
 - An `HttpError` with a 5xx status is sent with its message, and also logged.
 - Client errors raised by other middleware keep their status with a generic message. For example, malformed JSON sent to a `jsonBody()` route returns `400 { "error": "Bad Request" }`.

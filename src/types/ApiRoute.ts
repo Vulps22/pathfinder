@@ -9,9 +9,12 @@ export interface ApiRoute {
   put?:    (req: Request, res: Response) => Promise<void>;
   patch?:  (req: Request, res: Response) => Promise<void>;
   delete?: (req: Request, res: Response) => Promise<void>;
+  head?:    (req: Request, res: Response) => Promise<void>;
+  options?: (req: Request, res: Response) => Promise<void>;
+  all?:     (req: Request, res: Response) => Promise<void>; // any method the file doesn't define
 }
 
-export type RouteMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type RouteMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'ALL';
 
 export interface RouteInfo {
   path:    string;        // Express path, e.g. /api/v1/item/:id

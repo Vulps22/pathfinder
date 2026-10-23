@@ -112,6 +112,37 @@ describe('loadRoutes (integration)', () => {
     expect(del.status).toBe(204);
   });
 
+  it('registers HEAD ahead of GET so the head handler answers HEAD requests', async () => {
+    const app = express();
+    await loadRoutes(app, FIXTURES);
+    const res = await request(app).head('/api/v1/methods');
+    expect(res.status).toBe(200);
+    expect(res.headers['x-handler']).toBe('head');
+  });
+
+  it('registers OPTIONS', async () => {
+    const app = express();
+    await loadRoutes(app, FIXTURES);
+    const res = await request(app).options('/api/v1/methods');
+    expect(res.status).toBe(204);
+    expect(res.headers['allow']).toBe('GET, HEAD, OPTIONS');
+  });
+
+  it('lets a specific method win over all', async () => {
+    const app = express();
+    await loadRoutes(app, FIXTURES);
+    const res = await request(app).get('/api/v1/catch-all');
+    expect(res.body).toEqual({ handler: 'get' });
+  });
+
+  it('sends methods the file does not define to all', async () => {
+    const app = express();
+    await loadRoutes(app, FIXTURES);
+    const res = await request(app).put('/api/v1/catch-all');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ handler: 'all', method: 'PUT' });
+  });
+
   it('registers POST /api/v1/item/:id/action', async () => {
     const app = express();
     await loadRoutes(app, FIXTURES);
@@ -169,6 +200,20 @@ describe('listRoutes', () => {
       path: '/api/v1/item',
       methods: ['GET', 'POST'],
       file: 'api/v1/item/index.js',
+    });
+  });
+
+  it('lists head, options and all', async () => {
+    const routes = await listRoutes(FIXTURES);
+    expect(routes).toContainEqual({
+      path: '/api/v1/methods',
+      methods: ['GET', 'HEAD', 'OPTIONS'],
+      file: 'api/v1/methods.js',
+    });
+    expect(routes).toContainEqual({
+      path: '/api/v1/catch-all',
+      methods: ['GET', 'ALL'],
+      file: 'api/v1/catch-all.js',
     });
   });
 
